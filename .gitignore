@@ -11,3 +11,6 @@ wheels/
 
 #editor styles
 .vscode/
+
+#extra
+*.html
