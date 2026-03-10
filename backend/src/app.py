@@ -1,7 +1,16 @@
 from fastapi import FastAPI,HTTPException
 from src.schemas import PostFormat
 
-app=FastAPI()
+from src.db import Post,create_db_and_tables,get_async_session
+from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app:FastAPI):
+    await create_db_and_tables()
+    yield #wtf is yield?
+
+app=FastAPI(lifespan=lifespan)
 
 posts : dict = {
     1: {
