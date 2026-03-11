@@ -1,8 +1,9 @@
-from fastapi import FastAPI,HTTPException
+from fastapi import FastAPI,HTTPException,File,Form,UploadFile,Depends
 from src.schemas import PostFormat
 
 from src.db import Post,create_db_and_tables,get_async_session
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -59,28 +60,47 @@ posts : dict = {
          "content":"Forest hunting goes wrong as gypsy soldier gets brutally mauled by a wild bear like a rag doll . Despite severe injuries Mr.Glass survied"
          }'''
 
-@app.get("/posts")
-def get_posts(limit:int=None):  #query param is optional as a default value exists
-    if limit:
-        return list(posts.values())[:limit]
-    return posts
+#* GET : query param is optional as a default value exists
+#* POST : since we use a pydantic model as the fn argument , python automatically assumes it as the req body
 
-@app.get("/posts/{id}")
-def get_post_by_id(id:int)->PostFormat:
-    if not posts.get(id):
-        raise HTTPException(status_code=404,detail=f"Post with id:{id} not found")
-    return posts.get(id)
+@app.get("/feed")
+async def get_posts(
+    session:AsyncSession=Depends(get_async_session)
+):
+    results=await session.execute(select(Post).order_by(Post.created_at.desc()))
+
+    posts=[row[0] for row in results.all()] #?why do we access row[0]
+    posts_data=[]
+    for post in posts:
+        posts_data.append({
+            "id":str(post.id),
+            "caption":post.caption,
+            "url":post.url,
+            "file_type":post.file_type,
+            "file_name":post.file_name,
+            "created_at":post.created_at.isoformat()
+        })
+
+    return {"posts":posts_data}
 
 
 
-@app.post("/posts")
-def add_post(post:PostFormat)->PostFormat: #since we use a pydantic model as the fn argument , python automatically assumes it as the req body
-    new_post={
-         "title":post.title,
-         "content":post.content
-         }
-    posts[max(posts)+1]=new_post
-    return new_post
+@app.post("/upload")
+async def upload_file(
+    file:UploadFile=File(...),
+    caption:str=Form(""),
+    session:AsyncSession=Depends(get_async_session)
+):
+    post=Post(
+        caption=caption,
+        url="https://www.filmcomment.com/blog/david-thomson-the-revenant-alejandro-g-inarritu/",
+        file_type="Article",
+        file_name="Film Comment : The Revenant"
+    )
 
+    session.add(post)
+    await session.commit()
+    await session.refresh(post) #make sure default values [id,created_at] are created
+    return post
 
     
