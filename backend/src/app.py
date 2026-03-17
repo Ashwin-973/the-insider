@@ -1,10 +1,20 @@
-from fastapi import FastAPI,HTTPException,File,Form,UploadFile,Depends
-from src.schemas import PostFormat
+import shutil
+import os
+import tempfile
+import uuid
 
+from fastapi import FastAPI,HTTPException,File,Form,UploadFile,Depends
+import imagekitio
+
+from src.schemas import PostFormat
 from src.db import Post,create_db_and_tables,get_async_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from contextlib import asynccontextmanager
+
+from src.images import imagekit
+# from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions
+
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -91,16 +101,66 @@ async def upload_file(
     caption:str=Form(""),
     session:AsyncSession=Depends(get_async_session)
 ):
-    post=Post(
-        caption=caption,
-        url="https://www.filmcomment.com/blog/david-thomson-the-revenant-alejandro-g-inarritu/",
-        file_type="Article",
-        file_name="Film Comment : The Revenant"
-    )
+    temp_file_path=None
 
-    session.add(post)
-    await session.commit()
-    await session.refresh(post) #make sure default values [id,created_at] are created
-    return post
+    try:
+        with tempfile.NamedTemporaryFile(delete=False,suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            temp_file_path=temp_file.name
+            shutil.copyfileobj(file.file,temp_file)
+
+        with open(temp_file_path,"rb") as uploaded_file:
+            upload_result=imagekit.files.upload(
+                file=uploaded_file,
+                file_name=file.filename,
+                use_unique_file_name=True,
+                tags=["backend-upload"]
+            )
+
+
+        post=Post(
+            caption=caption,
+            url=upload_result.url,
+            file_type="video" if file.content_type.startswith("video/") else "image",
+            file_name=upload_result.name
+        )
+
+        session.add(post)
+        await session.commit()
+        await session.refresh(post) #make sure default values [id,created_at] are created
+        return post
+
+    except Exception as err:
+        raise HTTPException(status_code=500,detail=str(err))
+    except imagekitio.APIConnectionError as err:
+        raise HTTPException(status_code=500,detail=str(err)) 
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        file.file.close() #?is it await file.close()
+    
+
+@app.delete("/posts/{post_id}")
+async def delete_post(
+    post_id:str,
+    session:AsyncSession=Depends(get_async_session)
+    ):
+    try:
+
+        post_uuid=uuid.UUID(post_id)
+
+        result=await session.execute(select(Post).where(Post.id==post_uuid))
+        post=result.scalars().first()
+
+        if not post:
+            raise HTTPException(status_code=404,detail="post not found")
+        
+        await session.delete(post)
+        await session.commit()
+
+        return {"success":True,"message":"deletion successful"}
+    except Exception as err:
+        raise HTTPException(status_code=500,detail=str(err))
+
+
 
     
