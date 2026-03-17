@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+.env
 
 # Virtual environments
 .venv
@@ -17,3 +18,4 @@ wheels/
 
 #local
 test.db
+
