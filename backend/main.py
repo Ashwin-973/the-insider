@@ -1,4 +1,15 @@
+import asyncio
+import os
+
 import uvicorn
+
+'''
+selector event loop provides better compatability with 
+aiosqlite and psycopg than the default 
+proactor event loop policy
+'''
+if os.name=="nt":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 
