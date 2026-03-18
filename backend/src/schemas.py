@@ -1,7 +1,7 @@
 from pydantic import BaseModel
+import uuid
 
 from fastapi_users import schemas
-import uuid
 
 
 class PostFormat(BaseModel):

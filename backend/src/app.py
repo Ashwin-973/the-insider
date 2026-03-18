@@ -4,17 +4,16 @@ import tempfile
 import uuid
 
 from fastapi import FastAPI,HTTPException,File,Form,UploadFile,Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from contextlib import asynccontextmanager
 import imagekitio
 
 from src.schemas import PostFormat,UserRead,UserCreate,UserUpdate
 from src.db import Post,create_db_and_tables,get_async_session,User
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from contextlib import asynccontextmanager
-
 from src.images import imagekit
-#!from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions >>deprecated
 from src.users import auth_backend,current_active_user,fastapi_users
+#!from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions >>deprecated
 
 
 @asynccontextmanager
@@ -79,6 +78,12 @@ posts : dict = {
 
 #* GET : query param is optional as a default value exists
 #* POST : since we use a pydantic model as the fn argument , python automatically assumes it as the req body
+
+
+@app.get("/")
+async def greeting():
+    return {"success":True,"message":"I Do Wish We Could Chat Longer, But I'm Having An Old Friend For Dinner"}
+
 
 @app.get("/feed")
 async def get_posts(
