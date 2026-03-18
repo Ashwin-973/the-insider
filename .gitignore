@@ -14,7 +14,7 @@ wheels/
 .vscode/
 
 #extra
-*.html
+notes.txt
 
 #local
 test.db
