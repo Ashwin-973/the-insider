@@ -89,9 +89,8 @@ async def create_db_and_tables():
         if IS_SQLITE:
             columns_result=await conn.exec_driver_sql("PRAGMA table_info(posts)") 
             columns={row[1] for row in columns_result.fetchall()}
-
-        if "user_id" not in columns:
-            await conn.exec_driver_sql("ALTER TABLE posts ADD COLUMN user_id UUID")
+            if "user_id" not in columns:
+                await conn.exec_driver_sql("ALTER TABLE posts ADD COLUMN user_id UUID")
 
 async def get_async_session()->AsyncGenerator[AsyncSession,None]:
     async with async_session_maker() as session:

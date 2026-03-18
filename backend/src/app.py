@@ -4,6 +4,7 @@ import tempfile
 import uuid
 
 from fastapi import FastAPI,HTTPException,File,Form,UploadFile,Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from contextlib import asynccontextmanager
@@ -22,6 +23,18 @@ async def lifespan(app:FastAPI):
     yield #wtf is yield?
 
 app=FastAPI(lifespan=lifespan)
+
+origins=[
+    "http://localhost:8501"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 app.include_router(fastapi_users.get_auth_router(auth_backend),prefix="/auth/jwt",tags=["auth"])
 app.include_router(fastapi_users.get_register_router(UserRead,UserCreate),prefix="/auth",tags=["auth"])

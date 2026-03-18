@@ -2,10 +2,14 @@ import streamlit as st
 import requests
 import base64
 import urllib.parse
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 st.set_page_config(page_title="The Insider", layout="wide")
 
-API_BASE_URL = "http://localhost:1999"
+API_BASE_URL = os.getenv("API_BASE_URL")
 
 # Initialize session state
 if 'token' not in st.session_state:
@@ -124,8 +128,8 @@ def encode_text_for_overlay(text):
 def create_transformed_url(original_url, transformation_params, caption=None):
     if caption:
         encoded_caption = encode_text_for_overlay(caption)
-        # Add text overlay at bottom with semi-transparent background
-        text_overlay = f"l-text,ie-{encoded_caption},ly-N20,lx-20,fs-100,co-white,bg-000000A0,l-end"
+        # Add small, subtle text overlay at bottom left corner
+        text_overlay = f"l-text,ie-{encoded_caption},ly-N10,lx-10,fs-24,co-F5F5F5,bg-808080B0,pa-4_8,l-end"
         transformation_params = text_overlay
 
     if not transformation_params:
